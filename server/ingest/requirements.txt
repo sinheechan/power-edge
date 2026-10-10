@@ -1,0 +1,3 @@
+paho-mqtt==2.1.0    # MQTT 수신
+psycopg[binary]     # PostgreSQL 연결 (psycopg 3)
+tzdata              # 작은 리눅스 이미지에서도 Asia/Seoul 시간대를 쓰기 위해

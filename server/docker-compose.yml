@@ -1,0 +1,61 @@
+services:
+  # ── MQTT 브로커 ──
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: edge-mosquitto
+    ports:
+      - "1883:1883"                          # 내 PC 1883 → 컨테이너 1883
+    volumes:
+      - ./mosquitto/config:/mosquitto/config # 설정·계정 파일 연결
+      - ./mosquitto/data:/mosquitto/data     # 보관 메시지 저장 위치
+    restart: unless-stopped                  # 죽거나 재부팅되면 자동으로 다시 켬
+
+  # ── 데이터베이스 ──
+  db:
+    image: postgres:16
+    container_name: edge-db
+    environment:
+      POSTGRES_USER: ${DB_USER}              # .env 값이 채워짐
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: edge
+      TZ: Asia/Seoul
+    ports:
+      - "5435:5432"                          # 지난 프로젝트(5433, 5434)와 안 겹치게 5435
+    volumes:
+      - pgdata:/var/lib/postgresql/data      # DB 데이터 보존 (컨테이너를 지워도 남음)
+      - ./sql:/docker-entrypoint-initdb.d    # 처음 만들 때 01_schema.sql 자동 실행
+    healthcheck:                             # DB가 접속 가능한 상태인지 5초마다 확인
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d edge"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── 수신기 ──
+  ingest:
+    build: ./ingest                          # ingest/Dockerfile 로 이미지 만들기
+    container_name: edge-ingest
+    environment:
+      # 컨테이너끼리는 서비스 이름(db, mosquitto)으로 서로 찾음. 포트도 컨테이너 안쪽 번호(5432)
+      DB_DSN: postgresql://${DB_USER}:${DB_PASS}@db:5432/edge
+      MQTT_HOST: mosquitto
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASS: ${MQTT_PASS}
+    depends_on:
+      db: { condition: service_healthy }     # DB가 준비된 뒤에 시작
+      mosquitto: { condition: service_started }
+    restart: unless-stopped
+
+  # ── 대시보드 ──
+  dashboard:
+    build: ./dashboard
+    container_name: edge-dashboard
+    environment:
+      DB_URL: postgresql+psycopg://${DB_USER}:${DB_PASS}@db:5432/edge   # SQLAlchemy용 주소 형식
+    ports:
+      - "8501:8501"
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+
+volumes:
+  pgdata:                                    # 위에서 쓴 DB 저장 공간 이름 선언

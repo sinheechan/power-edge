@@ -1,0 +1,5 @@
+streamlit           # 웹 대시보드
+pandas              # 표 데이터 처리
+sqlalchemy          # DB 연결 관리
+psycopg[binary]     # PostgreSQL 드라이버
+tzdata              # 시간대 정보
