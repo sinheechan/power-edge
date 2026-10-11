@@ -1,4 +1,4 @@
-# 학습: 데이터 분할 -> 모델 6개 Optuna 튜닝·학습 -> 앙상블 전 조합 평가 -> CSV + model.pkl
+# 학습: 데이터 분할 -> 모델 6개 Optuna 튜닝·학습 -> 앙상블 전 조합 평가 -> CSV + .log + model.pkl
 #
 # 사용법 (ml 폴더에서):
 #   python train.py                         # 6개 모델 전부, 모델당 Optuna 20회
@@ -8,10 +8,8 @@
 #
 # 결과:
 #   outputs/results.csv      기준 2 + 단일 6 + 앙상블 상위 5 (+선택된 앙상블) 누적
-#   outputs/ensembles.csv    앙상블 전 조합(2~6개 x 평균/가중) 누적
-#   outputs/predictions.csv  최근 실행의 시험 구간 실제값 vs 모든 예측
-#   outputs/optuna_trials.csv  튜닝 시도 기록 누적
 #   outputs/retrain_log.csv  기존 모델과 비교·교체 기록 누적
+#   outputs/logs/train_<run_id>.log  실행 로그 (튜닝 시도, 단일 모델·앙상블 전 조합 결과와 파라미터)
 #   models/model.pkl         선택된 앙상블 (기존 모델보다 좋을 때만 교체)
 
 import argparse
@@ -40,15 +38,32 @@ SWITCH_GAIN = 0.02        # 4개 조합이 3개보다 2% 이상 좋을 때만 4�
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
+LOG_PATH = None           # main() 에서 실행마다 정해짐
+
+
+# 화면에 출력하면서 .log 파일에도 같은 내용을 기록
+def log_write_print(message=""):
+    print(message)
+    if LOG_PATH is not None:
+        with open(LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(str(message) + "\n")
+
+
+# 결과 1줄 요약 (기준·단일 모델·앙상블 공통)
+def result_text(row):
+    return (f"valid {row['valid_mae']:7.1f} kW | test {row['test_mae']:7.1f} kW | "
+            f"초반 {row['test_mae_early']:7.1f} kW | 놓친 피크 {row['missed_peaks']}/{row['peak_windows']} | "
+            f"헛경보 {row['false_alarms']} | 조기 {row['early_min']:.1f}분")
+
 
 # ---------------------------------------------------------------
 # 데이터 준비
 # ---------------------------------------------------------------
 def load_data(include_db):
-    print("CSV 로드 중...")
+    log_write_print("CSV 로드 중...")
     steps, scale = features.load_csv_power()
     df, X_seq = features.build_samples(steps)
-    print(f"  CSV 샘플 {len(df):,}개 (배율 x{scale:.1f})")
+    log_write_print(f"  CSV 샘플 {len(df):,}개 (배율 x{scale:.1f})")
 
     # DB 데이터는 CSV 와 날짜가 떨어져 있어서 따로 샘플을 만든 뒤 합침
     if include_db:
@@ -56,7 +71,7 @@ def load_data(include_db):
         db_steps = features.load_db_power(os.getenv("DB_URL"))
         if len(db_steps) > 0:
             db_df, db_seq = features.build_samples(db_steps)
-            print(f"  DB 샘플 {len(db_df):,}개")
+            log_write_print(f"  DB 샘플 {len(db_df):,}개")
             if len(db_df) > 0:
                 df = pd.concat([df, db_df], ignore_index=True)
                 X_seq = np.concatenate([X_seq, db_seq])
@@ -119,7 +134,7 @@ def evaluate(part, pred, target_kw, with_peaks):
 # ---------------------------------------------------------------
 # 단일 모델: Optuna 튜닝 -> 전체 학습 데이터로 다시 학습
 # ---------------------------------------------------------------
-def tune_and_fit(name, data, trials, run_id, trial_rows):
+def tune_and_fit(name, data, trials):
     X_tr, S_tr, y_tr = data["train"]
     X_va, S_va, y_va = data["valid"]
 
@@ -149,14 +164,10 @@ def tune_and_fit(name, data, trials, run_id, trial_rows):
             bar.set_postfix(best=f"{study.best_value:.1f}kW")
         study.optimize(objective, n_trials=n_trials, callbacks=[on_trial])
 
+    log_write_print(f"  [{name}] 튜닝 시도 {n_trials}회 (학습 샘플 {len(pick):,}개)")
     for t in study.trials:
-        trial_rows.append({
-            "run_id": run_id,
-            "model": name,
-            "trial": t.number,
-            "valid_mae": t.value,
-            "params": json.dumps(t.params),
-        })
+        mark = " <- best" if t.number == study.best_trial.number else ""
+        log_write_print(f"    trial {t.number:3d} | valid {t.value:7.1f} kW | {json.dumps(t.params)}{mark}")
 
     best = study.best_params
     model = make_model(name, best)
@@ -274,8 +285,13 @@ def main():
 
     names = args.models.split(",")
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs(OUT_DIR, exist_ok=True)
+    os.makedirs(os.path.join(OUT_DIR, "logs"), exist_ok=True)
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+
+    global LOG_PATH
+    LOG_PATH = os.path.join(OUT_DIR, "logs", f"train_{run_id}.log")
+    log_write_print(f"=== 학습 시작 run_id={run_id} ===")
+    log_write_print(f"모델: {', '.join(names)} | Optuna {args.trials}회 | DB 포함: {args.include_db}")
 
     # 1. 데이터
     df, X_seq, scale = load_data(args.include_db)
@@ -293,15 +309,14 @@ def main():
             parts[split]["residual"].to_numpy(dtype="float64"),
         )
         n_days = parts[split]["date"].nunique()
-        print(f"  {split}: {mask.sum():,}개 샘플 / {n_days}일")
+        log_write_print(f"  {split}: {mask.sum():,}개 샘플 / {n_days}일")
 
     # 평가용 목표전력: 학습 구간 15분 평균의 상위 5%
     train_windows = parts["train"].drop_duplicates("window_start")["actual_kw"]
     target_kw = float(np.percentile(train_windows, TARGET_PCT))
-    print(f"  평가 목표전력: {target_kw:,.0f} kW (학습 구간 15분 평균 상위 {100 - TARGET_PCT}%)")
+    log_write_print(f"  평가 목표전력: {target_kw:,.0f} kW (학습 구간 15분 평균 상위 {100 - TARGET_PCT}%)")
 
     result_rows = []
-    trial_rows = []
     preds = {}
     valid_mae = {}
     fitted = {}
@@ -320,12 +335,13 @@ def main():
             "early_min": ev_te["early_min"], "peak_windows": ev_te["peak_windows"],
             "params": "", "selected": "",
         })
-        print(f"[기준] {label:12s} valid {ev_va['mae']:7.1f} kW | test {ev_te['mae']:7.1f} kW")
+        log_write_print(f"[기준] {label:12s} {result_text(result_rows[-1])}")
 
     # 3. 단일 모델 6개
     for name in names:
-        print(f"[학습] {name} 튜닝 중...")
-        model, best = tune_and_fit(name, data, args.trials, run_id, trial_rows)
+        log_write_print()
+        log_write_print(f"[학습] {name} 튜닝 중...")
+        model, best = tune_and_fit(name, data, args.trials)
         fitted[name] = model
         params_of[name] = best
 
@@ -346,42 +362,38 @@ def main():
             "early_min": ev_te["early_min"], "peak_windows": ev_te["peak_windows"],
             "params": json.dumps(best), "selected": "",
         })
-        print(f"[학습] {name:12s} valid {ev_va['mae']:7.1f} kW | test {ev_te['mae']:7.1f} kW")
+        log_write_print(f"[학습] {name:12s} {result_text(result_rows[-1])}")
+        log_write_print(f"       파라미터: {json.dumps(best)}")
 
     # 4. 앙상블 전 조합
     if len(names) >= 2:
-        print("[앙상블] 전 조합 평가 중...")
+        log_write_print()
+        log_write_print("[앙상블] 전 조합 평가 중...")
         ens_rows = make_ensembles(names, preds, valid_mae, parts, target_kw, run_id)
         chosen = select_ensemble(ens_rows)
     else:
         ens_rows = []
         chosen = None
 
-    # 5. CSV 저장
     ens_public = []
     for row in ens_rows:
         r = public_row(row)
         r["selected"] = "Y" if row is chosen else ""
         ens_public.append(r)
-    append_csv(ens_public, f"{OUT_DIR}/ensembles.csv")
-
-    # results.csv 에는 앙상블 valid 상위 5개 + 선택된 것만
     ranked = sorted(ens_public, key=lambda r: r["valid_mae"])
+
+    # 앙상블 전 조합 결과는 로그에만 기록 (valid 오차 순)
+    for i, r in enumerate(ranked, start=1):
+        mark = "  <- 선택" if r["selected"] == "Y" else ""
+        log_write_print(f"  {i:3d}. {r['method']:8s} {r['members']:28s} 가중치 {r['weights']:24s} "
+                        f"{result_text(r)}{mark}")
+
+    # 5. CSV 저장: results.csv 에는 기준 + 단일 모델 + 앙상블 valid 상위 5개 + 선택된 것
     top = ranked[:5]
     for r in ranked:
         if r["selected"] == "Y" and r not in top:
             top.append(r)
     append_csv(result_rows + top, f"{OUT_DIR}/results.csv")
-    append_csv(trial_rows, f"{OUT_DIR}/optuna_trials.csv")
-
-    # 시험 구간 예측값 (최근 실행으로 덮어쓰기)
-    pred_df = parts["test"][["window_start", "elapsed_min", "actual_kw", "proj_base", "proj_trend"]].copy()
-    for name in names:
-        pred_df[name] = preds[name]["test"]
-    if chosen is not None:
-        pred_df["ensemble"] = chosen["_pred_test"]
-    pred_df.insert(0, "run_id", run_id)
-    pred_df.to_csv(f"{OUT_DIR}/predictions.csv", index=False, encoding="utf-8-sig")
 
     # 6. 모델 저장 (앙상블, 모델이 1개면 그 모델 하나)
     if chosen is not None:
@@ -424,10 +436,13 @@ def main():
         "promoted": "Y" if promoted else "N",
     }], f"{OUT_DIR}/retrain_log.csv")
 
-    print()
-    print(f"선택: {'+'.join(members)} (가중치 {[round(w, 2) for w in weights]})")
-    print(f"시험 오차: 새 모델 {new_test_mae:.1f} kW | 기존 모델 {old_test_mae if old_test_mae is None else round(old_test_mae, 1)}")
-    print("model.pkl 교체" if promoted else "기존 model.pkl 유지")
+    log_write_print()
+    log_write_print(f"선택: {'+'.join(members)} (가중치 {[round(w, 2) for w in weights]})")
+    for m in members:
+        log_write_print(f"  {m} 파라미터: {json.dumps(params_of[m])}")
+    log_write_print(f"시험 오차: 새 모델 {new_test_mae:.1f} kW | 기존 모델 {old_test_mae if old_test_mae is None else round(old_test_mae, 1)}")
+    log_write_print("model.pkl 교체" if promoted else "기존 model.pkl 유지")
+    log_write_print(f"로그 저장: {LOG_PATH}")
 
 
 if __name__ == "__main__":

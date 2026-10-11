@@ -1,0 +1,256 @@
+=== 학습 시작 run_id=20261011_144812 ===
+모델: ridge, rf, lgbm, xgb, gru, cnn | Optuna 20회 | DB 포함: False
+CSV 로드 중...
+  CSV 샘플 52,628개 (배율 x1.9)
+  train: 36,937개 샘플 / 36일
+  valid: 6,455개 샘플 / 7일
+  test: 9,236개 샘플 / 9일
+  평가 목표전력: 1,302 kW (학습 구간 15분 평균 상위 5%)
+[기준] base_formula valid    53.8 kW | test    42.0 kW | 초반    62.1 kW | 놓친 피크 0/10 | 헛경보 43 | 조기 12.8분
+[기준] base_trend   valid    82.7 kW | test    70.2 kW | 초반   109.6 kW | 놓친 피크 0/10 | 헛경보 129 | 조기 13.0분
+
+[학습] ridge 튜닝 중...
+  [ridge] 튜닝 시도 20회 (학습 샘플 30,000개)
+    trial   0 | valid    44.9 kW | {"alpha": 0.1767016940294795}
+    trial   1 | valid    46.3 kW | {"alpha": 506.1576888752306}
+    trial   2 | valid    44.8 kW | {"alpha": 24.658329458549105}
+    trial   3 | valid    44.8 kW | {"alpha": 3.907967156822881}
+    trial   4 | valid    44.9 kW | {"alpha": 0.008632008168602538}
+    trial   5 | valid    44.9 kW | {"alpha": 0.008629132190071854}
+    trial   6 | valid    44.9 kW | {"alpha": 0.002231010801867922}
+    trial   7 | valid    45.4 kW | {"alpha": 157.41890047456639}
+    trial   8 | valid    44.8 kW | {"alpha": 4.0428727350273315}
+    trial   9 | valid    44.8 kW | {"alpha": 17.71884735480682}
+    trial  10 | valid    44.9 kW | {"alpha": 0.15877002610239208}
+    trial  11 | valid    44.8 kW | {"alpha": 30.09717825235653}
+    trial  12 | valid    44.8 kW | {"alpha": 15.021275801396476} <- best
+    trial  13 | valid    44.9 kW | {"alpha": 1.1843230121433637}
+    trial  14 | valid    45.0 kW | {"alpha": 64.53106061086143}
+    trial  15 | valid    44.8 kW | {"alpha": 8.094688165085659}
+    trial  16 | valid    44.9 kW | {"alpha": 0.4578280973359295}
+    trial  17 | valid    46.4 kW | {"alpha": 586.5789846904775}
+    trial  18 | valid    45.1 kW | {"alpha": 93.44679407480479}
+    trial  19 | valid    44.8 kW | {"alpha": 11.162367512075026}
+[학습] ridge        valid    44.8 kW | test    32.7 kW | 초반    45.1 kW | 놓친 피크 1/10 | 헛경보 2 | 조기 11.9분
+       파라미터: {"alpha": 15.021275801396476}
+
+[학습] rf 튜닝 중...
+  [rf] 튜닝 시도 20회 (학습 샘플 30,000개)
+    trial   0 | valid    36.7 kW | {"n_estimators": 106, "max_depth": 16, "min_samples_leaf": 37}
+    trial   1 | valid    38.2 kW | {"n_estimators": 140, "max_depth": 6, "min_samples_leaf": 8}
+    trial   2 | valid    36.7 kW | {"n_estimators": 58, "max_depth": 15, "min_samples_leaf": 31}
+    trial   3 | valid    41.0 kW | {"n_estimators": 156, "max_depth": 4, "min_samples_leaf": 49}
+    trial   4 | valid    38.2 kW | {"n_estimators": 175, "max_depth": 6, "min_samples_leaf": 10}
+    trial   5 | valid    37.7 kW | {"n_estimators": 77, "max_depth": 7, "min_samples_leaf": 27}
+    trial   6 | valid    37.6 kW | {"n_estimators": 115, "max_depth": 7, "min_samples_leaf": 31}
+    trial   7 | valid    37.6 kW | {"n_estimators": 71, "max_depth": 7, "min_samples_leaf": 19}
+    trial   8 | valid    36.2 kW | {"n_estimators": 118, "max_depth": 14, "min_samples_leaf": 10}
+    trial   9 | valid    36.5 kW | {"n_estimators": 127, "max_depth": 11, "min_samples_leaf": 3}
+    trial  10 | valid    36.2 kW | {"n_estimators": 171, "max_depth": 14, "min_samples_leaf": 10}
+    trial  11 | valid    36.1 kW | {"n_estimators": 179, "max_depth": 16, "min_samples_leaf": 7} <- best
+    trial  12 | valid    36.2 kW | {"n_estimators": 176, "max_depth": 15, "min_samples_leaf": 5}
+    trial  13 | valid    36.2 kW | {"n_estimators": 193, "max_depth": 12, "min_samples_leaf": 10}
+    trial  14 | valid    36.3 kW | {"n_estimators": 167, "max_depth": 14, "min_samples_leaf": 20}
+    trial  15 | valid    36.3 kW | {"n_estimators": 191, "max_depth": 16, "min_samples_leaf": 21}
+    trial  16 | valid    36.7 kW | {"n_estimators": 171, "max_depth": 11, "min_samples_leaf": 1}
+    trial  17 | valid    36.6 kW | {"n_estimators": 137, "max_depth": 12, "min_samples_leaf": 31}
+    trial  18 | valid    36.2 kW | {"n_estimators": 138, "max_depth": 16, "min_samples_leaf": 11}
+    trial  19 | valid    36.3 kW | {"n_estimators": 130, "max_depth": 13, "min_samples_leaf": 17}
+[학습] rf           valid    36.0 kW | test    23.9 kW | 초반    34.6 kW | 놓친 피크 3/10 | 헛경보 1 | 조기 8.6분
+       파라미터: {"n_estimators": 179, "max_depth": 16, "min_samples_leaf": 7}
+
+[학습] lgbm 튜닝 중...
+  [lgbm] 튜닝 시도 20회 (학습 샘플 30,000개)
+    trial   0 | valid    41.0 kW | {"n_estimators": 287, "learning_rate": 0.17254716573280354, "num_leaves": 97, "min_child_samples": 64, "subsample": 0.6624074561769746, "colsample_bytree": 0.662397808134481}
+    trial   1 | valid    38.6 kW | {"n_estimators": 129, "learning_rate": 0.13394334706750485, "num_leaves": 82, "min_child_samples": 74, "subsample": 0.608233797718321, "colsample_bytree": 0.9879639408647978}
+    trial   2 | valid    36.7 kW | {"n_estimators": 517, "learning_rate": 0.018891200276189388, "num_leaves": 35, "min_child_samples": 26, "subsample": 0.7216968971838151, "colsample_bytree": 0.8099025726528951}
+    trial   3 | valid    36.6 kW | {"n_estimators": 316, "learning_rate": 0.023927528765580644, "num_leaves": 84, "min_child_samples": 22, "subsample": 0.7168578594140873, "colsample_bytree": 0.7465447373174767}
+    trial   4 | valid    38.3 kW | {"n_estimators": 328, "learning_rate": 0.10508421338691762, "num_leaves": 37, "min_child_samples": 56, "subsample": 0.836965827544817, "colsample_bytree": 0.6185801650879991}
+    trial   5 | valid    37.0 kW | {"n_estimators": 404, "learning_rate": 0.016666983286066417, "num_leaves": 22, "min_child_samples": 96, "subsample": 0.9862528132298237, "colsample_bytree": 0.9233589392465844}
+    trial   6 | valid    36.6 kW | {"n_estimators": 252, "learning_rate": 0.013399060561509796, "num_leaves": 92, "min_child_samples": 50, "subsample": 0.6488152939379115, "colsample_bytree": 0.798070764044508}
+    trial   7 | valid    37.9 kW | {"n_estimators": 117, "learning_rate": 0.15242391728466367, "num_leaves": 44, "min_child_samples": 70, "subsample": 0.7246844304357644, "colsample_bytree": 0.8080272084711243}
+    trial   8 | valid    36.8 kW | {"n_estimators": 373, "learning_rate": 0.017398074711291726, "num_leaves": 124, "min_child_samples": 80, "subsample": 0.9757995766256756, "colsample_bytree": 0.9579309401710595}
+    trial   9 | valid    38.5 kW | {"n_estimators": 399, "learning_rate": 0.15826541904647565, "num_leaves": 24, "min_child_samples": 27, "subsample": 0.6180909155642152, "colsample_bytree": 0.7301321323053057}
+    trial  10 | valid    37.2 kW | {"n_estimators": 349, "learning_rate": 0.044354865903284996, "num_leaves": 106, "min_child_samples": 10, "subsample": 0.7046015734895754, "colsample_bytree": 0.7699996425299278}
+    trial  11 | valid    36.5 kW | {"n_estimators": 292, "learning_rate": 0.01420361765033616, "num_leaves": 108, "min_child_samples": 59, "subsample": 0.6027739935201784, "colsample_bytree": 0.8355473459579182} <- best
+    trial  12 | valid    36.7 kW | {"n_estimators": 155, "learning_rate": 0.017181786149431912, "num_leaves": 104, "min_child_samples": 53, "subsample": 0.6416733046962546, "colsample_bytree": 0.9439971693221909}
+    trial  13 | valid    36.9 kW | {"n_estimators": 252, "learning_rate": 0.029681787592033246, "num_leaves": 73, "min_child_samples": 79, "subsample": 0.7375153356578743, "colsample_bytree": 0.8589539963411127}
+    trial  14 | valid    36.7 kW | {"n_estimators": 194, "learning_rate": 0.03280662804803943, "num_leaves": 66, "min_child_samples": 24, "subsample": 0.65925981127292, "colsample_bytree": 0.7890856026631795}
+    trial  15 | valid    36.6 kW | {"n_estimators": 214, "learning_rate": 0.02352929984269577, "num_leaves": 88, "min_child_samples": 48, "subsample": 0.659794046261635, "colsample_bytree": 0.6896437695453705}
+    trial  16 | valid    36.6 kW | {"n_estimators": 270, "learning_rate": 0.018804983777654095, "num_leaves": 111, "min_child_samples": 54, "subsample": 0.6887587716507331, "colsample_bytree": 0.6612241483469181}
+    trial  17 | valid    37.0 kW | {"n_estimators": 270, "learning_rate": 0.030286052372602186, "num_leaves": 96, "min_child_samples": 53, "subsample": 0.6092532229055004, "colsample_bytree": 0.8679646191756231}
+    trial  18 | valid    36.8 kW | {"n_estimators": 291, "learning_rate": 0.020236520925867432, "num_leaves": 124, "min_child_samples": 46, "subsample": 0.6464934122230523, "colsample_bytree": 0.9500948344548477}
+    trial  19 | valid    36.6 kW | {"n_estimators": 252, "learning_rate": 0.02860747987478194, "num_leaves": 72, "min_child_samples": 41, "subsample": 0.6587283715777752, "colsample_bytree": 0.6604988613409647}
+[학습] lgbm         valid    36.3 kW | test    24.5 kW | 초반    35.3 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 7.2분
+       파라미터: {"n_estimators": 292, "learning_rate": 0.01420361765033616, "num_leaves": 108, "min_child_samples": 59, "subsample": 0.6027739935201784, "colsample_bytree": 0.8355473459579182}
+
+[학습] xgb 튜닝 중...
+  [xgb] 튜닝 시도 20회 (학습 샘플 30,000개)
+    trial   0 | valid    38.8 kW | {"n_estimators": 287, "learning_rate": 0.17254716573280354, "max_depth": 8, "subsample": 0.8394633936788146, "colsample_bytree": 0.6624074561769746}
+    trial   1 | valid    36.5 kW | {"n_estimators": 178, "learning_rate": 0.011900590783184251, "max_depth": 9, "subsample": 0.8404460046972835, "colsample_bytree": 0.8832290311184181}
+    trial   2 | valid    38.9 kW | {"n_estimators": 110, "learning_rate": 0.18276027831785724, "max_depth": 9, "subsample": 0.6849356442713105, "colsample_bytree": 0.6727299868828402}
+    trial   3 | valid    36.4 kW | {"n_estimators": 191, "learning_rate": 0.024878734419814436, "max_depth": 7, "subsample": 0.7727780074568463, "colsample_bytree": 0.7164916560792167}
+    trial   4 | valid    36.7 kW | {"n_estimators": 406, "learning_rate": 0.01518747922672247, "max_depth": 5, "subsample": 0.7465447373174767, "colsample_bytree": 0.7824279936868144}
+    trial   5 | valid    36.3 kW | {"n_estimators": 493, "learning_rate": 0.018187859051288217, "max_depth": 7, "subsample": 0.836965827544817, "colsample_bytree": 0.6185801650879991}
+    trial   6 | valid    38.7 kW | {"n_estimators": 404, "learning_rate": 0.016666983286066417, "max_depth": 3, "subsample": 0.9795542149013333, "colsample_bytree": 0.9862528132298237}
+    trial   7 | valid    37.8 kW | {"n_estimators": 505, "learning_rate": 0.0249064396938244, "max_depth": 3, "subsample": 0.8736932106048627, "colsample_bytree": 0.7760609974958406}
+    trial   8 | valid    38.8 kW | {"n_estimators": 161, "learning_rate": 0.04407984038169244, "max_depth": 3, "subsample": 0.9637281608315128, "colsample_bytree": 0.7035119926400067}
+    trial   9 | valid    36.4 kW | {"n_estimators": 431, "learning_rate": 0.02544166090938368, "max_depth": 7, "subsample": 0.8186841117373118, "colsample_bytree": 0.6739417822102108}
+    trial  10 | valid    36.3 kW | {"n_estimators": 498, "learning_rate": 0.01269170486999142, "max_depth": 9, "subsample": 0.9838224762263869, "colsample_bytree": 0.706542565042567}
+    trial  11 | valid    36.3 kW | {"n_estimators": 580, "learning_rate": 0.010062560802292663, "max_depth": 9, "subsample": 0.9781261136744411, "colsample_bytree": 0.6717315550377434}
+    trial  12 | valid    36.4 kW | {"n_estimators": 597, "learning_rate": 0.012300947383469913, "max_depth": 10, "subsample": 0.947050841907605, "colsample_bytree": 0.6473928009262087}
+    trial  13 | valid    36.9 kW | {"n_estimators": 574, "learning_rate": 0.027002611816099375, "max_depth": 7, "subsample": 0.9924545883432241, "colsample_bytree": 0.7064194984853842}
+    trial  14 | valid    36.7 kW | {"n_estimators": 493, "learning_rate": 0.02379978838996087, "max_depth": 10, "subsample": 0.9616887489760978, "colsample_bytree": 0.7210320765344649}
+    trial  15 | valid    36.3 kW | {"n_estimators": 565, "learning_rate": 0.011285128810722298, "max_depth": 10, "subsample": 0.8423489009536905, "colsample_bytree": 0.8179347793648098}
+    trial  16 | valid    36.5 kW | {"n_estimators": 523, "learning_rate": 0.015585914009275652, "max_depth": 10, "subsample": 0.8251710553676915, "colsample_bytree": 0.7427410583480355}
+    trial  17 | valid    36.1 kW | {"n_estimators": 486, "learning_rate": 0.011424630902695946, "max_depth": 9, "subsample": 0.9194419011486568, "colsample_bytree": 0.7607165181119261} <- best
+    trial  18 | valid    36.2 kW | {"n_estimators": 535, "learning_rate": 0.010242983187699764, "max_depth": 8, "subsample": 0.888853905899553, "colsample_bytree": 0.833804212265102}
+    trial  19 | valid    36.5 kW | {"n_estimators": 466, "learning_rate": 0.023899139373339002, "max_depth": 7, "subsample": 0.8199856240782661, "colsample_bytree": 0.8724754400074387}
+[학습] xgb          valid    36.0 kW | test    24.3 kW | 초반    35.2 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.6분
+       파라미터: {"n_estimators": 486, "learning_rate": 0.011424630902695946, "max_depth": 9, "subsample": 0.9194419011486568, "colsample_bytree": 0.7607165181119261}
+
+[학습] gru 튜닝 중...
+  [gru] 튜닝 시도 6회 (학습 샘플 30,000개)
+    trial   0 | valid    42.3 kW | {"hidden": 32, "lr": 0.0015751320499779737, "epochs": 3}
+    trial   1 | valid    40.1 kW | {"hidden": 32, "lr": 0.0026070247583707684, "epochs": 5} <- best
+    trial   2 | valid    48.7 kW | {"hidden": 16, "lr": 0.00023270677083837802, "epochs": 5}
+    trial   3 | valid    49.4 kW | {"hidden": 64, "lr": 0.00019010245319870352, "epochs": 5}
+    trial   4 | valid    44.6 kW | {"hidden": 32, "lr": 0.0010677482709481358, "epochs": 3}
+    trial   5 | valid    41.3 kW | {"hidden": 16, "lr": 0.007902619549708232, "epochs": 3}
+[학습] gru          valid    40.4 kW | test    28.6 kW | 초반    40.2 kW | 놓친 피크 1/10 | 헛경보 1 | 조기 9.1분
+       파라미터: {"hidden": 32, "lr": 0.0026070247583707684, "epochs": 5}
+
+[학습] cnn 튜닝 중...
+  [cnn] 튜닝 시도 6회 (학습 샘플 30,000개)
+    trial   0 | valid    49.2 kW | {"channels": 32, "lr": 0.0015751320499779737, "epochs": 3}
+    trial   1 | valid    47.7 kW | {"channels": 32, "lr": 0.0026070247583707684, "epochs": 5}
+    trial   2 | valid    54.0 kW | {"channels": 16, "lr": 0.00023270677083837802, "epochs": 5}
+    trial   3 | valid    47.9 kW | {"channels": 64, "lr": 0.00019010245319870352, "epochs": 5}
+    trial   4 | valid    49.9 kW | {"channels": 32, "lr": 0.0010677482709481358, "epochs": 3}
+    trial   5 | valid    47.7 kW | {"channels": 16, "lr": 0.007902619549708232, "epochs": 3} <- best
+[학습] cnn          valid    45.3 kW | test    36.0 kW | 초반    46.5 kW | 놓친 피크 9/10 | 헛경보 0 | 조기 4.0분
+       파라미터: {"channels": 16, "lr": 0.007902619549708232, "epochs": 3}
+
+[앙상블] 전 조합 평가 중...
+    1. weighted rf+xgb                       가중치 0.50/0.50                valid    35.8 kW | test    23.9 kW | 초반    34.7 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 7.7분
+    2. mean     rf+xgb                       가중치 0.50/0.50                valid    35.8 kW | test    23.9 kW | 초반    34.7 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 7.7분
+    3. weighted rf+lgbm+xgb                  가중치 0.33/0.33/0.33           valid    35.8 kW | test    24.0 kW | 초반    34.8 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 7.3분  <- 선택
+    4. mean     rf+lgbm+xgb                  가중치 0.33/0.33/0.33           valid    35.9 kW | test    24.0 kW | 초반    34.8 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 7.3분
+    5. weighted rf+lgbm+xgb+gru              가중치 0.26/0.26/0.26/0.23      valid    35.9 kW | test    24.2 kW | 초반    35.1 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.5분
+    6. weighted rf+lgbm                      가중치 0.50/0.50                valid    35.9 kW | test    24.0 kW | 초반    34.7 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 7.3분
+    7. mean     rf+lgbm                      가중치 0.50/0.50                valid    35.9 kW | test    24.0 kW | 초반    34.7 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 7.3분
+    8. mean     rf+lgbm+xgb+gru              가중치 0.25/0.25/0.25/0.25      valid    36.0 kW | test    24.3 kW | 초반    35.2 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.5분
+    9. weighted lgbm+xgb                     가중치 0.50/0.50                valid    36.0 kW | test    24.3 kW | 초반    35.1 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.5분
+   10. mean     lgbm+xgb                     가중치 0.50/0.50                valid    36.0 kW | test    24.3 kW | 초반    35.1 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.5분
+   11. weighted rf+xgb+gru                   가중치 0.35/0.35/0.31           valid    36.0 kW | test    24.4 kW | 초반    35.3 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.0분
+   12. mean     rf+xgb+gru                   가중치 0.33/0.33/0.33           valid    36.1 kW | test    24.5 kW | 초반    35.4 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.0분
+   13. weighted rf+lgbm+gru                  가중치 0.35/0.34/0.31           valid    36.1 kW | test    24.5 kW | 초반    35.4 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.5분
+   14. mean     rf+lgbm+gru                  가중치 0.33/0.33/0.33           valid    36.2 kW | test    24.5 kW | 초반    35.5 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.5분
+   15. weighted lgbm+xgb+gru                 가중치 0.34/0.35/0.31           valid    36.2 kW | test    24.6 kW | 초반    35.6 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   16. mean     lgbm+xgb+gru                 가중치 0.33/0.33/0.33           valid    36.3 kW | test    24.7 kW | 초반    35.6 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   17. weighted ridge+rf+lgbm+xgb            가중치 0.21/0.26/0.26/0.26      valid    36.3 kW | test    24.7 kW | 초반    35.7 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   18. weighted ridge+rf+lgbm+xgb+gru        가중치 0.17/0.21/0.21/0.21/0.19 valid    36.4 kW | test    24.9 kW | 초반    36.0 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   19. mean     ridge+rf+lgbm+xgb            가중치 0.25/0.25/0.25/0.25      valid    36.5 kW | test    25.0 kW | 초반    36.0 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   20. weighted rf+lgbm+xgb+gru+cnn          가중치 0.21/0.21/0.21/0.19/0.17 valid    36.6 kW | test    25.4 kW | 초반    36.2 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   21. mean     ridge+rf+lgbm+xgb+gru        가중치 0.20/0.20/0.20/0.20/0.20 valid    36.6 kW | test    25.1 kW | 초반    36.2 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   22. weighted rf+gru                       가중치 0.53/0.47                valid    36.7 kW | test    25.0 kW | 초반    36.0 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 6.8분
+   23. weighted ridge+rf+xgb                 가중치 0.29/0.36/0.36           valid    36.7 kW | test    25.2 kW | 초반    36.2 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.6분
+   24. weighted rf+lgbm+xgb+cnn              가중치 0.26/0.26/0.26/0.21      valid    36.7 kW | test    25.4 kW | 초반    36.0 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   25. weighted ridge+rf+xgb+gru             가중치 0.22/0.27/0.27/0.24      valid    36.8 kW | test    25.3 kW | 초반    36.5 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   26. weighted ridge+rf+lgbm                가중치 0.29/0.36/0.35           valid    36.8 kW | test    25.2 kW | 초반    36.2 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   27. weighted xgb+gru                      가중치 0.53/0.47                valid    36.8 kW | test    25.2 kW | 초반    36.2 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 6.1분
+   28. mean     rf+gru                       가중치 0.50/0.50                valid    36.8 kW | test    25.1 kW | 초반    36.2 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 6.8분
+   29. mean     rf+lgbm+xgb+gru+cnn          가중치 0.20/0.20/0.20/0.20/0.20 valid    36.8 kW | test    25.7 kW | 초반    36.5 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   30. weighted ridge+rf+lgbm+gru            가중치 0.22/0.27/0.27/0.24      valid    36.8 kW | test    25.3 kW | 초반    36.6 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   31. weighted ridge+lgbm+xgb               가중치 0.29/0.35/0.36           valid    36.9 kW | test    25.4 kW | 초반    36.4 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   32. mean     xgb+gru                      가중치 0.50/0.50                valid    36.9 kW | test    25.3 kW | 초반    36.4 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 6.1분
+   33. mean     rf+lgbm+xgb+cnn              가중치 0.25/0.25/0.25/0.25      valid    36.9 kW | test    25.8 kW | 초반    36.4 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 7.6분
+   34. weighted ridge+lgbm+xgb+gru           가중치 0.22/0.27/0.27/0.24      valid    37.0 kW | test    25.4 kW | 초반    36.7 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 9.0분
+   35. weighted lgbm+gru                     가중치 0.53/0.47                valid    37.0 kW | test    25.4 kW | 초반    36.4 kW | 놓친 피크 1/10 | 헛경보 0 | 조기 6.4분
+   36. weighted rf+xgb+gru+cnn               가중치 0.27/0.27/0.24/0.22      valid    37.0 kW | test    25.9 kW | 초반    36.7 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.6분
+   37. mean     ridge+rf+xgb                 가중치 0.33/0.33/0.33           valid    37.0 kW | test    25.5 kW | 초반    36.6 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.6분
+   38. mean     ridge+rf+xgb+gru             가중치 0.25/0.25/0.25/0.25      valid    37.0 kW | test    25.5 kW | 초반    36.9 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   39. weighted ridge+rf+lgbm+xgb+gru+cnn    가중치 0.15/0.18/0.18/0.18/0.16/0.14 valid    37.0 kW | test    25.8 kW | 초반    36.7 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   40. weighted rf+lgbm+gru+cnn              가중치 0.27/0.27/0.24/0.22      valid    37.0 kW | test    26.0 kW | 초반    36.8 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 7.6분
+   41. mean     lgbm+gru                     가중치 0.50/0.50                valid    37.1 kW | test    25.5 kW | 초반    36.5 kW | 놓친 피크 1/10 | 헛경보 0 | 조기 6.4분
+   42. mean     ridge+rf+lgbm                가중치 0.33/0.33/0.33           valid    37.1 kW | test    25.5 kW | 초반    36.6 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.6분
+   43. mean     ridge+rf+lgbm+gru            가중치 0.25/0.25/0.25/0.25      valid    37.1 kW | test    25.6 kW | 초반    36.9 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.4분
+   44. weighted ridge+rf+lgbm+xgb+cnn        가중치 0.18/0.22/0.22/0.22/0.17 valid    37.1 kW | test    25.8 kW | 초반    36.6 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.2분
+   45. weighted lgbm+xgb+gru+cnn             가중치 0.27/0.27/0.24/0.22      valid    37.1 kW | test    26.0 kW | 초반    36.9 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   46. weighted rf+xgb+cnn                   가중치 0.36/0.36/0.28           valid    37.1 kW | test    26.1 kW | 초반    36.6 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.4분
+   47. mean     ridge+lgbm+xgb+gru           가중치 0.25/0.25/0.25/0.25      valid    37.2 kW | test    25.7 kW | 초반    37.0 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 9.0분
+   48. mean     ridge+lgbm+xgb               가중치 0.33/0.33/0.33           valid    37.2 kW | test    25.7 kW | 초반    36.8 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.1분
+   49. weighted rf+lgbm+cnn                  가중치 0.36/0.36/0.29           valid    37.2 kW | test    26.2 kW | 초반    36.8 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 7.6분
+   50. mean     rf+xgb+gru+cnn               가중치 0.25/0.25/0.25/0.25      valid    37.3 kW | test    26.3 kW | 초반    37.1 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.6분
+   51. weighted lgbm+xgb+cnn                 가중치 0.36/0.36/0.29           valid    37.3 kW | test    26.3 kW | 초반    36.8 kW | 놓친 피크 6/10 | 헛경보 0 | 조기 6.5분
+   52. mean     ridge+rf+lgbm+xgb+gru+cnn    가중치 0.17/0.17/0.17/0.17/0.17/0.17 valid    37.3 kW | test    26.1 kW | 초반    37.1 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   53. mean     rf+lgbm+gru+cnn              가중치 0.25/0.25/0.25/0.25      valid    37.3 kW | test    26.4 kW | 초반    37.2 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 7.6분
+   54. mean     lgbm+xgb+gru+cnn             가중치 0.25/0.25/0.25/0.25      valid    37.4 kW | test    26.4 kW | 초반    37.3 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.6분
+   55. mean     ridge+rf+lgbm+xgb+cnn        가중치 0.20/0.20/0.20/0.20/0.20 valid    37.4 kW | test    26.3 kW | 초반    37.1 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.2분
+   56. weighted ridge+rf+xgb+gru+cnn         가중치 0.18/0.22/0.22/0.20/0.18 valid    37.5 kW | test    26.4 kW | 초반    37.4 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   57. mean     rf+xgb+cnn                   가중치 0.33/0.33/0.33           valid    37.5 kW | test    26.7 kW | 초반    37.1 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.2분
+   58. weighted ridge+rf+lgbm+gru+cnn        가중치 0.18/0.22/0.22/0.20/0.18 valid    37.6 kW | test    26.4 kW | 초반    37.5 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   59. mean     rf+lgbm+cnn                  가중치 0.33/0.33/0.33           valid    37.6 kW | test    26.8 kW | 초반    37.2 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 7.4분
+   60. mean     lgbm+xgb+cnn                 가중치 0.33/0.33/0.33           valid    37.6 kW | test    26.8 kW | 초반    37.3 kW | 놓친 피크 6/10 | 헛경보 0 | 조기 6.5분
+   61. weighted ridge+lgbm+xgb+gru+cnn       가중치 0.18/0.22/0.22/0.20/0.18 valid    37.7 kW | test    26.5 kW | 초반    37.5 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   62. weighted ridge+rf+gru                 가중치 0.30/0.37/0.33           valid    37.7 kW | test    26.2 kW | 초반    37.7 kW | 놓친 피크 2/10 | 헛경보 1 | 조기 8.9분
+   63. weighted ridge+rf+xgb+cnn             가중치 0.22/0.28/0.28/0.22      valid    37.7 kW | test    26.6 kW | 초반    37.4 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.8분
+   64. weighted ridge+rf+lgbm+cnn            가중치 0.22/0.28/0.28/0.22      valid    37.8 kW | test    26.6 kW | 초반    37.5 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.8분
+   65. weighted ridge+xgb+gru                가중치 0.30/0.37/0.33           valid    37.8 kW | test    26.4 kW | 초반    37.9 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 8.2분
+   66. mean     ridge+rf+xgb+gru+cnn         가중치 0.20/0.20/0.20/0.20/0.20 valid    37.9 kW | test    26.8 kW | 초반    37.8 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   67. weighted ridge+lgbm+xgb+cnn           가중치 0.22/0.28/0.28/0.22      valid    37.9 kW | test    26.7 kW | 초반    37.5 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   68. weighted ridge+rf                     가중치 0.45/0.55                valid    37.9 kW | test    26.4 kW | 초반    37.6 kW | 놓친 피크 3/10 | 헛경보 1 | 조기 10.0분
+   69. mean     ridge+rf+lgbm+gru+cnn        가중치 0.20/0.20/0.20/0.20/0.20 valid    37.9 kW | test    26.8 kW | 초반    37.9 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   70. weighted rf+gru+cnn                   가중치 0.37/0.33/0.30           valid    37.9 kW | test    27.1 kW | 초반    38.0 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.4분
+   71. weighted ridge+lgbm+gru               가중치 0.30/0.37/0.33           valid    38.0 kW | test    26.4 kW | 초반    38.0 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 9.5분
+   72. mean     ridge+lgbm+xgb+gru+cnn       가중치 0.20/0.20/0.20/0.20/0.20 valid    38.0 kW | test    26.9 kW | 초반    38.0 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   73. weighted xgb+gru+cnn                  가중치 0.37/0.33/0.30           valid    38.0 kW | test    27.1 kW | 초반    38.1 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 5.8분
+   74. mean     ridge+rf+gru                 가중치 0.33/0.33/0.33           valid    38.0 kW | test    26.5 kW | 초반    38.1 kW | 놓친 피크 2/10 | 헛경보 1 | 조기 9.2분
+   75. weighted ridge+xgb                    가중치 0.45/0.55                valid    38.1 kW | test    26.5 kW | 초반    37.8 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 10.4분
+   76. weighted lgbm+gru+cnn                 가중치 0.37/0.33/0.30           valid    38.1 kW | test    27.3 kW | 초반    38.2 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.4분
+   77. mean     ridge+rf+xgb+cnn             가중치 0.25/0.25/0.25/0.25      valid    38.1 kW | test    27.1 kW | 초반    37.9 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.8분
+   78. mean     ridge+xgb+gru                가중치 0.33/0.33/0.33           valid    38.2 kW | test    26.7 kW | 초반    38.3 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 9.4분
+   79. mean     ridge+rf+lgbm+cnn            가중치 0.25/0.25/0.25/0.25      valid    38.2 kW | test    27.1 kW | 초반    38.0 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.8분
+   80. weighted ridge+lgbm                   가중치 0.45/0.55                valid    38.2 kW | test    26.6 kW | 초반    37.9 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 8.4분
+   81. mean     ridge+lgbm+gru               가중치 0.33/0.33/0.33           valid    38.3 kW | test    26.7 kW | 초반    38.3 kW | 놓친 피크 2/10 | 헛경보 0 | 조기 10.4분
+   82. mean     rf+gru+cnn                   가중치 0.33/0.33/0.33           valid    38.3 kW | test    27.6 kW | 초반    38.5 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.4분
+   83. mean     ridge+lgbm+xgb+cnn           가중치 0.25/0.25/0.25/0.25      valid    38.3 kW | test    27.2 kW | 초반    38.0 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.8분
+   84. mean     xgb+gru+cnn                  가중치 0.33/0.33/0.33           valid    38.3 kW | test    27.6 kW | 초반    38.5 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 5.8분
+   85. mean     ridge+rf                     가중치 0.50/0.50                valid    38.4 kW | test    26.8 kW | 초반    38.1 kW | 놓친 피크 3/10 | 헛경보 1 | 조기 10.1분
+   86. mean     lgbm+gru+cnn                 가중치 0.33/0.33/0.33           valid    38.4 kW | test    27.7 kW | 초반    38.7 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.4분
+   87. weighted ridge+rf+gru+cnn             가중치 0.23/0.29/0.26/0.23      valid    38.5 kW | test    27.5 kW | 초반    38.7 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   88. weighted rf+cnn                       가중치 0.56/0.44                valid    38.5 kW | test    28.0 kW | 초반    38.4 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 6.4분
+   89. weighted xgb+cnn                      가중치 0.56/0.44                valid    38.6 kW | test    28.0 kW | 초반    38.4 kW | 놓친 피크 7/10 | 헛경보 0 | 조기 6.0분
+   90. mean     ridge+xgb                    가중치 0.50/0.50                valid    38.6 kW | test    27.0 kW | 초반    38.3 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 10.7분
+   91. weighted ridge+xgb+gru+cnn            가중치 0.23/0.29/0.26/0.23      valid    38.6 kW | test    27.6 kW | 초반    38.8 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.2분
+   92. weighted lgbm+cnn                     가중치 0.56/0.44                valid    38.7 kW | test    28.2 kW | 초반    38.6 kW | 놓친 피크 6/10 | 헛경보 0 | 조기 6.5분
+   93. mean     ridge+lgbm                   가중치 0.50/0.50                valid    38.7 kW | test    27.1 kW | 초반    38.4 kW | 놓친 피크 3/10 | 헛경보 0 | 조기 10.0분
+   94. weighted ridge+lgbm+gru+cnn           가중치 0.23/0.28/0.26/0.23      valid    38.7 kW | test    27.6 kW | 초반    38.9 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   95. mean     ridge+rf+gru+cnn             가중치 0.25/0.25/0.25/0.25      valid    38.9 kW | test    27.9 kW | 초반    39.2 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 8.0분
+   96. mean     ridge+xgb+gru+cnn            가중치 0.25/0.25/0.25/0.25      valid    39.0 kW | test    27.9 kW | 초반    39.2 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 9.0분
+   97. mean     ridge+lgbm+gru+cnn           가중치 0.25/0.25/0.25/0.25      valid    39.1 kW | test    28.0 kW | 초반    39.3 kW | 놓친 피크 5/10 | 헛경보 0 | 조기 7.8분
+   98. mean     rf+cnn                       가중치 0.50/0.50                valid    39.1 kW | test    28.7 kW | 초반    39.1 kW | 놓친 피크 6/10 | 헛경보 0 | 조기 6.2분
+   99. mean     xgb+cnn                      가중치 0.50/0.50                valid    39.1 kW | test    28.7 kW | 초반    39.1 kW | 놓친 피크 7/10 | 헛경보 0 | 조기 6.0분
+  100. weighted ridge+rf+cnn                 가중치 0.31/0.38/0.31           valid    39.1 kW | test    28.2 kW | 초반    39.0 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.7분
+  101. mean     lgbm+cnn                     가중치 0.50/0.50                valid    39.2 kW | test    28.8 kW | 초반    39.2 kW | 놓친 피크 6/10 | 헛경보 0 | 조기 6.2분
+  102. weighted ridge+xgb+cnn                가중치 0.31/0.38/0.31           valid    39.2 kW | test    28.2 kW | 초반    39.1 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.7분
+  103. weighted ridge+lgbm+cnn               가중치 0.31/0.38/0.31           valid    39.4 kW | test    28.3 kW | 초반    39.3 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.0분
+  104. mean     ridge+rf+cnn                 가중치 0.33/0.33/0.33           valid    39.6 kW | test    28.7 kW | 초반    39.6 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.7분
+  105. mean     ridge+xgb+cnn                가중치 0.33/0.33/0.33           valid    39.7 kW | test    28.7 kW | 초반    39.7 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 7.8분
+  106. mean     ridge+lgbm+cnn               가중치 0.33/0.33/0.33           valid    39.8 kW | test    28.8 kW | 초반    39.8 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.0분
+  107. weighted ridge+gru                    가중치 0.47/0.53                valid    40.7 kW | test    29.1 kW | 초반    41.3 kW | 놓친 피크 1/10 | 헛경보 2 | 조기 10.4분
+  108. weighted gru+cnn                      가중치 0.53/0.47                valid    40.7 kW | test    30.3 kW | 초반    41.5 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 5.3분
+  109. mean     ridge+gru                    가중치 0.50/0.50                valid    40.8 kW | test    29.2 kW | 초반    41.5 kW | 놓친 피크 1/10 | 헛경보 2 | 조기 10.4분
+  110. weighted ridge+gru+cnn                가중치 0.32/0.36/0.32           valid    40.9 kW | test    29.9 kW | 초반    41.6 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.2분
+  111. mean     gru+cnn                      가중치 0.50/0.50                valid    40.9 kW | test    30.5 kW | 초반    41.7 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 5.3분
+  112. mean     ridge+gru+cnn                가중치 0.33/0.33/0.33           valid    41.0 kW | test    30.1 kW | 초반    41.7 kW | 놓친 피크 4/10 | 헛경보 0 | 조기 8.2분
+  113. weighted ridge+cnn                    가중치 0.50/0.50                valid    43.3 kW | test    32.4 kW | 초반    43.9 kW | 놓친 피크 5/10 | 헛경보 1 | 조기 10.0분
+  114. mean     ridge+cnn                    가중치 0.50/0.50                valid    43.3 kW | test    32.4 kW | 초반    43.9 kW | 놓친 피크 5/10 | 헛경보 1 | 조기 10.0분
+
+선택: rf+lgbm+xgb (가중치 [0.33, 0.33, 0.33])
+  rf 파라미터: {"n_estimators": 179, "max_depth": 16, "min_samples_leaf": 7}
+  lgbm 파라미터: {"n_estimators": 292, "learning_rate": 0.01420361765033616, "num_leaves": 108, "min_child_samples": 59, "subsample": 0.6027739935201784, "colsample_bytree": 0.8355473459579182}
+  xgb 파라미터: {"n_estimators": 486, "learning_rate": 0.011424630902695946, "max_depth": 9, "subsample": 0.9194419011486568, "colsample_bytree": 0.7607165181119261}
+시험 오차: 새 모델 24.0 kW | 기존 모델 24.0
+model.pkl 교체
+로그 저장: /home/gmlck/projects/power-edge/ml/outputs/logs/train_20261011_144812.log
