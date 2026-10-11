@@ -16,7 +16,7 @@ from datetime import timedelta
 from pymodbus.datastore import ModbusSequentialDataBlock, ModbusServerContext, ModbusSlaveContext
 from pymodbus.server import StartAsyncTcpServer
 
-from config import LOAD_KW, LOADS, MODBUS_PORT, REG, now_kst
+from config import LOAD_KW, LOADS, MODBUS_PORT, REG, REPLAY_FROM, now_kst
 
 ESS_CAP_KWH = 500                  # ESS 정격 용량 (kWh)
 SCENARIO_SEC = {1: 480, 2: 60}     # 시나리오 코드별 지속 시간 (s)
@@ -132,7 +132,7 @@ def load_replay():
 
     t = now_kst()
     hour = int(SIM_HOUR) if SIM_HOUR else t.hour
-    return Replay(REPLAY_PATH, REPLAY_P95_KW, hour, t.minute, config.REPLAY_FROM)
+    return Replay(REPLAY_PATH, REPLAY_P95_KW, hour, t.minute, REPLAY_FROM)
 
 
 # 데이터스토어 초기화 → 갱신 루프 기동 → Modbus TCP 서버 실행
