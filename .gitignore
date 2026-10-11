@@ -6,3 +6,5 @@ __pycache__/
 server/mosquitto/data/
 server/mosquitto/config/passwd
 data/
+ml/.venv/
+ml/models/

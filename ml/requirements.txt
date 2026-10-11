@@ -1,0 +1,15 @@
+# 학습 · 서빙 공용 (ml 폴더 전용 가상환경)
+# torch 는 CPU 버전으로 따로 설치: pip install torch --index-url https://download.pytorch.org/whl/cpu
+pandas
+numpy
+scikit-learn
+lightgbm
+xgboost
+optuna
+joblib
+python-dotenv
+sqlalchemy
+psycopg[binary]
+matplotlib
+jupyter
+ipykernel
