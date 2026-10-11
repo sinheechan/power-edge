@@ -276,6 +276,23 @@ def public_row(row):
 # ---------------------------------------------------------------
 # 메인
 # ---------------------------------------------------------------
+# train/valid/test 기간(시작~끝 날짜)을 출력하고 outputs/split_dates.txt 에 저장
+# edge/.env 의 REPLAY_FROM 에 test 시작일을 넣어야 학습한 날을 재생하지 않음
+def save_split_dates(df):
+    lines = []
+    for split in ["train", "valid", "test"]:
+        dates = df.loc[df["split"] == split, "date"]
+        lines.append(f"{split:5s}: {dates.min()} ~ {dates.max()}")
+    lines.append(f"REPLAY_FROM={df.loc[df['split'] == 'test', 'date'].min()}")
+
+    log_write_print("  기간:")
+    for line in lines:
+        log_write_print(f"    {line}")
+
+    with open(os.path.join(OUT_DIR, "split_dates.txt"), "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--trials", type=int, default=20)
@@ -296,6 +313,7 @@ def main():
     # 1. 데이터
     df, X_seq, scale = load_data(args.include_db)
     df["split"] = features.split_by_date(df)
+    save_split_dates(df)
     df["residual"] = df["actual_kw"] - df["proj_base"]
 
     parts = {}

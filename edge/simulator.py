@@ -132,7 +132,7 @@ def load_replay():
 
     t = now_kst()
     hour = int(SIM_HOUR) if SIM_HOUR else t.hour
-    return Replay(REPLAY_PATH, REPLAY_P95_KW, hour, t.minute)
+    return Replay(REPLAY_PATH, REPLAY_P95_KW, hour, t.minute, config.REPLAY_FROM)
 
 
 # 데이터스토어 초기화 → 갱신 루프 기동 → Modbus TCP 서버 실행

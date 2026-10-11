@@ -21,6 +21,7 @@ SITE = os.getenv("SITE", "plant1")
 TARGET_KW = float(os.getenv("TARGET_KW", 1600))
 ESS_MAX_KW = float(os.getenv("ESS_MAX_KW", 200))
 BUFFER_PATH = os.getenv("BUFFER_PATH", "buffer.db")  # 오프라인 버퍼 파일 이름
+REPLAY_FROM = os.getenv("REPLAY_FROM")               # 재생 시작 날짜 (예: 2018-03-10). 없으면 전체 재생
 
 # 홀딩 레지스터 주소표 (0번부터). Modbus 레지스터는 16비트 정수만 저장하므로
 # 소수는 배율을 곱해 정수로 저장함 (예: 380.5V → 3805)

@@ -7,6 +7,7 @@
 #   30초마다       : 진행 중인 15분 구간의 평균 예측 -> ml.forecast 저장
 #   구간 끝날 때마다 : 실제 평균과 비교 (계산식 오차 vs ML 오차) -> ml.window_eval 저장, 화면 출력
 #   새 구간 96개마다 : train.py --include-db 실행 -> 더 좋으면 model.pkl 교체 -> 다시 로드
+#                     (.env 의 RETRAIN=1 일 때만. 기본 0 = 재생 데이터 중복 학습 방지)
 #
 # 그림자 운영: ML 예측은 기록만 하고, 실제 제어는 controller 의 기존 계산식이 계속 담당
 
@@ -32,6 +33,7 @@ MODEL_PATH = os.path.join(features.ML_DIR, "models", "model.pkl")
 
 load_dotenv()
 DB_URL = os.getenv("DB_URL")
+RETRAIN = os.getenv("RETRAIN", "0") == "1"   # 자동 재학습 켜기/끄기
 
 
 def now_kst():
@@ -163,8 +165,11 @@ def main():
             print("오류:", e)
 
         if new_windows >= RETRAIN_WINDOWS:
-            if retrain():
-                bundle = load_bundle()
+            if RETRAIN:
+                if retrain():
+                    bundle = load_bundle()
+            else:
+                print("재학습 꺼짐")
             new_windows = 0
 
         elapsed = time.time() - t0
