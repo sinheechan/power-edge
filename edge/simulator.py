@@ -1,13 +1,12 @@
-"""
-Virtual power meter / ESS simulator (Modbus TCP server).
-
-1초 주기로 공장 부하·ESS·계측값을 산출해 홀딩 레지스터에 기록한다.
-엣지 제어기(controller.py)는 Modbus 클라이언트로 접속해 값을 폴링하고,
-코일(부하 차단)·레지스터 20(ESS 방전 지령)을 통해 제어 명령을 내린다.
-
-Register map: config.REG 참조
-Scenario   : 레지스터 30에 코드 기록 시 동작 (1=피크, 2=전압강하, 0=해제)
-"""
+# Virtual power meter / ESS simulator (Modbus TCP server).
+#
+# 1초 주기로 공장 부하·ESS·계측값을 산출해 홀딩 레지스터에 기록한다.
+# 엣지 제어기(controller.py)는 Modbus 클라이언트로 접속해 값을 폴링하고,
+# 코일(부하 차단)·레지스터 20(ESS 방전 지령)을 통해 제어 명령을 내린다.
+#
+# Register map: config.REG 참조
+# Scenario   : 레지스터 30에 코드 기록 시 동작 (1=피크, 2=전압강하, 0=해제)
+# Load source: REPLAY_PATH 설정 시 실제 공장 데이터(IMDELD) 재생, 없으면 시간대별 합성 부하
 import asyncio
 import math
 import os
@@ -25,9 +24,12 @@ PEAK_EXTRA_KW = 450                # 피크 시나리오 추가 부하 (kW)
 SAG_RATIO = 0.87                   # 전압강하 시나리오 전압 비율
 NOMINAL_V = 380                    # 3상 공칭 전압 (V)
 SIM_HOUR = os.getenv("SIM_HOUR")   # 부하 프로파일 시각 고정 (테스트용, 미설정 시 실제 시각)
+REPLAY_PATH = os.getenv("REPLAY_PATH")                    # 재생할 CSV 경로
+REPLAY_P95_KW = float(os.getenv("REPLAY_P95_KW", 1400))   # 재생 데이터 규모 (가동 중 상위 5% 전력)
 DEBUG_PRINT = True                 # 주기별 산출값 콘솔 출력
 
-# 시간대별 비차단 기본 부하 (kW). SIM_HOUR 설정 시 해당 시각으로 고정.
+
+# 시간대별 비차단 기본 부하 (kW). SIM_HOUR 설정 시 해당 시각으로 고정
 def base_kw(t):
     h = int(SIM_HOUR) if SIM_HOUR else t.hour
 
@@ -40,13 +42,15 @@ def base_kw(t):
     return 450                         # 야간
 
 
-# 1초 주기 상태 갱신 루프.
-# 1. 시나리오 상태 갱신
-# 2. 부하 산출 (기본 부하 + 운전 중 차단 가능 부하 + 시나리오 가산)
-# 3. ESS 방전 반영 및 SOC 갱신 → 계통 수전 전력(grid) 산출
-# 4. 전압·전류·역률·주파수·누적 전력량 산출
-# 5. 레지스터 기록
-async def update(ctx):
+# 1초 주기 상태 갱신 루프
+#   1. 시나리오 상태 갱신
+#   2. 부하 산출
+#      - 합성: 기본 부하 + 운전 중 차단 가능 부하 + 시나리오 가산
+#      - 재생: 실제 공장 전체 전력 - 차단된 부하 + 시나리오 가산
+#   3. ESS 방전 반영 및 SOC 갱신 → 계통 수전 전력(grid) 산출
+#   4. 전압·전류·역률·주파수·누적 전력량 산출
+#   5. 레지스터 기록
+async def update(ctx, replay=None):
     s = ctx[0]
     s.setValues(1, 0, [1, 1, 1])       # 초기 상태: 전 부하 운전
     kwh, soc, scen, scen_end = 0.0, 80.0, 0, None
@@ -65,12 +69,21 @@ async def update(ctx):
             s.setValues(3, REG["scenario"], [0])
             print(f"[{t:%H:%M:%S}] 시나리오 종료")
 
-        # 부하: 코일 상태(제어기 차단 여부) 반영, ±1% 계측 노이즈
+        # 부하: 코일 상태(제어기 차단 여부) 반영
         coils = s.getValues(1, 0, 3)
-        load = base_kw(t) + sum(LOAD_KW[n] for n, a in LOADS.items() if coils[a])
+        v_ratio = 1.0
+        src = ""
+        if replay is not None:
+            # 실제 데이터는 공장 전체 값이라, 차단된 부하만큼 빼는 방식
+            rep_kw, v_ratio, src_ts = replay.next()
+            shed_kw = sum(LOAD_KW[n] for n, a in LOADS.items() if not coils[a])
+            load = max(rep_kw - shed_kw, 0.0)
+            src = f" | 원본 {src_ts:%m-%d %H:%M:%S}"
+        else:
+            load = base_kw(t) + sum(LOAD_KW[n] for n, a in LOADS.items() if coils[a])
+            load *= 1 + random.gauss(0, 0.01)      # ±1% 계측 노이즈 (실제 데이터는 이미 흔들림 있음)
         if scen == 1:
             load += PEAK_EXTRA_KW
-        load *= 1 + random.gauss(0, 0.01)
 
         # ESS: 방전만 모델링, 대기 시 저속 충전으로 단순화. SOC 5% 이하 방전 불가
         cmd = s.getValues(3, REG["ess_cmd"], 1)[0] / 10
@@ -82,7 +95,13 @@ async def update(ctx):
         grid = max(load - ess, 0.0)    # 계통 수전 전력 = 부하 − ESS 방전
 
         # 계측값: 3상 전류 I = P / (√3 · V · PF), 누적 전력량은 1초분 적산
-        v = NOMINAL_V * (1 + random.gauss(0, 0.003)) * (SAG_RATIO if scen == 2 else 1)
+        # 전압: 재생 시 실제 전압 흔들림 비율 사용, 합성 시 ±0.3% 노이즈
+        if replay is not None:
+            v = NOMINAL_V * v_ratio
+        else:
+            v = NOMINAL_V * (1 + random.gauss(0, 0.003))
+        if scen == 2:
+            v *= SAG_RATIO
         pf = min(0.99, 0.95 + random.gauss(0, 0.005))
         hz = 60 + random.gauss(0, 0.01)
         amp = grid * 1000 / (math.sqrt(3) * v * pf)
@@ -97,19 +116,35 @@ async def update(ctx):
         if DEBUG_PRINT:
             print(f"[{t:%H:%M:%S}] 부하 {load:7.1f}kW | ESS {ess:5.1f}kW | 한전 {grid:7.1f}kW | "
                   f"{v:5.1f}V {amp:7.1f}A 역률 {pf:.3f} {hz:.2f}Hz | 누적 {kwh:8.2f}kWh | "
-                  f"SOC {soc:5.1f}% | 스위치 {[int(x) for x in coils]} | 시나리오 {scen}")
+                  f"SOC {soc:5.1f}% | 스위치 {[int(x) for x in coils]} | 시나리오 {scen}{src}")
 
-        await asyncio.sleep(1) # 대기 중 & Modbus 서버가 클라이언트 요청 처리
+        await asyncio.sleep(1)         # 대기 중 Modbus 서버가 클라이언트 요청 처리
 
 
+# 재생 데이터 준비 (REPLAY_PATH 없으면 None → 합성 부하)
+# 시작 위치: SIM_HOUR 있으면 그 시각, 없으면 지금 시각과 같은 시각부터
+def load_replay():
+    if not REPLAY_PATH:
+        print("부하: 시간대별 합성 데이터")
+        return None
+
+    from replay import Replay   # 재생 모드에서만 pandas 로드
+
+    t = now_kst()
+    hour = int(SIM_HOUR) if SIM_HOUR else t.hour
+    return Replay(REPLAY_PATH, REPLAY_P95_KW, hour, t.minute)
+
+
+# 데이터스토어 초기화 → 갱신 루프 기동 → Modbus TCP 서버 실행
 async def main():
-    """데이터스토어 초기화 → 갱신 루프 기동 → Modbus TCP 서버 실행."""
+    replay = load_replay()
+
     store = ModbusSlaveContext(
         co=ModbusSequentialDataBlock(0, [0] * 10),   # 코일 10
         hr=ModbusSequentialDataBlock(0, [0] * 50),   # 홀딩 레지스터 50
     )
     ctx = ModbusServerContext(slaves=store, single=True)
-    task = asyncio.create_task(update(ctx))          # 참조 유지 (GC 방지)
+    task = asyncio.create_task(update(ctx, replay))  # 참조 유지 (GC 방지)
     print(f"가상 계측기 실행: 0.0.0.0:{MODBUS_PORT}")
     await StartAsyncTcpServer(context=ctx, address=("0.0.0.0", MODBUS_PORT))
 

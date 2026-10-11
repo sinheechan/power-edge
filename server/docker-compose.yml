@@ -23,7 +23,7 @@ services:
       - "5435:5432"                          # 지난 프로젝트(5433, 5434)와 안 겹치게 5435
     volumes:
       - pgdata:/var/lib/postgresql/data      # DB 데이터 보존 (컨테이너를 지워도 남음)
-      - ./sql:/docker-entrypoint-initdb.d    # 처음 만들 때 01_schema.sql 자동 실행
+      - ./sql:/docker-entrypoint-initdb.d    # 처음 만들 때 schema.sql 자동 실행
     healthcheck:                             # DB가 접속 가능한 상태인지 5초마다 확인
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d edge"]
       interval: 5s

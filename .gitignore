@@ -2,6 +2,7 @@
 .env
 *.db
 __pycache__/
-*.Zone.Identifier
+*Zone.Identifier
 server/mosquitto/data/
 server/mosquitto/config/passwd
+data/
