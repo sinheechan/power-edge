@@ -1,5 +1,6 @@
 #!/bin/bash
 P=$HOME/projects/power-edge
+WAIT_MODBUS='until (echo > /dev/tcp/localhost/5020) 2>/dev/null; do sleep 1; done'
 
 if [ "$1" = "stop" ]; then
     tmux kill-session -t power 2>/dev/null
@@ -17,8 +18,7 @@ fi
 cd $P/server && docker compose up -d
 
 tmux new-session -d -s power -c $P "cd $P/edge && source .venv/bin/activate && python simulator.py; bash"
-sleep 3
-tmux split-window -h -t power -c $P "cd $P/edge && source .venv/bin/activate && python controller.py; bash"
-tmux split-window -v -t power:0.0 -c $P "sleep 15; cd $P/ml && source .venv/bin/activate && python serve.py; bash"
+tmux split-window -h -t power -c $P "echo 'simulator 준비 대기 중...'; $WAIT_MODBUS; sleep 3; cd $P/edge && source .venv/bin/activate && python controller.py; bash"
+tmux split-window -v -t power:0.0 -c $P "echo 'controller 대기 중...'; $WAIT_MODBUS; sleep 10; cd $P/ml && source .venv/bin/activate && python serve.py; bash"
 tmux split-window -v -t power:0.1 -c $P
 tmux attach -t power

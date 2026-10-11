@@ -180,13 +180,13 @@ def build_samples(steps):
     return df, X_seq
 
 
-# 날짜 기준 분할 (앞 70% 학습 / 다음 15% 검증 / 마지막 15% 시험)
+# 날짜 기준 분할 (앞 80% 학습 / 다음 10% 검증 / 마지막 10% 시험)
 # 랜덤으로 섞으면 같은 구간이 학습·시험에 동시에 들어가 성능이 부풀려짐
 def split_by_date(df):
     dates = sorted(df["date"].unique())
     n = len(dates)
-    n_train = int(n * 0.7)
-    n_valid = int(n * 0.15)
+    n_train = int(n * 0.8)
+    n_valid = int(n * 0.1)
 
     train_dates = set(dates[:n_train])
     valid_dates = set(dates[n_train:n_train + n_valid])
