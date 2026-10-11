@@ -1,0 +1,2 @@
+﻿run_id,include_db,new_model,new_test_mae,old_test_mae,promoted
+20261011_141609,False,rf+lgbm+xgb,24.225983276549325,,Y

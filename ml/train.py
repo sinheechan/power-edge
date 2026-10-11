@@ -19,19 +19,21 @@ import json
 import os
 from datetime import datetime
 from itertools import combinations
+from math import comb
 
 import joblib
 import numpy as np
 import optuna
 import pandas as pd
 from dotenv import load_dotenv
+from tqdm import tqdm
 
 import features
 from features import TAB_COLS
 from models import MODEL_NAMES, SEQ_MODELS, make_model, predict_bundle, suggest_params
 
-OUT_DIR = "outputs"
-MODEL_PATH = "models/model.pkl"
+OUT_DIR = os.path.join(features.ML_DIR, "outputs")
+MODEL_PATH = os.path.join(features.ML_DIR, "models", "model.pkl")
 TUNE_ROWS = 30000         # 튜닝은 학습 데이터 일부로 빠르게, 최종 학습은 전체로
 TARGET_PCT = 95           # 평가용 목표전력 = 학습 구간 15분 평균의 상위 5% 선
 SWITCH_GAIN = 0.02        # 4개 조합이 3개보다 2% 이상 좋을 때만 4개 선택
@@ -141,7 +143,11 @@ def tune_and_fit(name, data, trials, run_id, trial_rows):
         n_trials = max(3, trials // 3)
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=n_trials)
+    with tqdm(total=n_trials, desc=f"  {name} 튜닝", unit="회") as bar:
+        def on_trial(study, trial):
+            bar.update(1)
+            bar.set_postfix(best=f"{study.best_value:.1f}kW")
+        study.optimize(objective, n_trials=n_trials, callbacks=[on_trial])
 
     for t in study.trials:
         trial_rows.append({
@@ -164,6 +170,8 @@ def tune_and_fit(name, data, trials, run_id, trial_rows):
 # ---------------------------------------------------------------
 def make_ensembles(names, preds, valid_mae, parts, target_kw, run_id):
     rows = []
+    total = sum(comb(len(names), n) for n in range(2, len(names) + 1)) * 2
+    bar = tqdm(total=total, desc="  앙상블 평가", unit="개")
     for n in range(2, len(names) + 1):
         for combo in combinations(names, n):
             for method in ["mean", "weighted"]:
@@ -209,6 +217,8 @@ def make_ensembles(names, preds, valid_mae, parts, target_kw, run_id):
                     "_weights": weights,
                     "_pred_test": pred_te,
                 })
+                bar.update(1)
+    bar.close()
     return rows
 
 

@@ -7,9 +7,11 @@ lightgbm
 xgboost
 optuna
 joblib
+tqdm                      # 학습 진행 막대
 python-dotenv
 sqlalchemy
 psycopg[binary]
 matplotlib
+koreanize-matplotlib      # 그래프 한글 폰트(나눔고딕 포함, apt 설치 불필요)
 jupyter
 ipykernel

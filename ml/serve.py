@@ -28,7 +28,7 @@ from models import predict_bundle
 PREDICT_SEC = 30
 RETRAIN_WINDOWS = 96          # 15분 x 96 = 하루
 RETRAIN_TRIALS = 5            # 재학습은 짧게
-MODEL_PATH = "models/model.pkl"
+MODEL_PATH = os.path.join(features.ML_DIR, "models", "model.pkl")
 
 load_dotenv()
 DB_URL = os.getenv("DB_URL")
@@ -138,7 +138,7 @@ def evaluate_closed(engine, bundle):
 
 def retrain():
     print("=== 재학습 시작 (끝날 때까지 예측 잠시 멈춤) ===")
-    result = subprocess.run([sys.executable, "train.py", "--include-db", "--trials", str(RETRAIN_TRIALS)])
+    result = subprocess.run([sys.executable, os.path.join(features.ML_DIR, "train.py"), "--include-db", "--trials", str(RETRAIN_TRIALS)])
     print("=== 재학습 끝 ===")
     return result.returncode == 0
 

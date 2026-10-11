@@ -5,10 +5,13 @@
 #
 # 학습과 서빙이 반드시 같은 함수(make_point)로 특징을 만들어야 결과가 어긋나지 않음
 
+import os
+
 import numpy as np
 import pandas as pd
 
-CSV_PATH = "../data/mvlv-transformer.csv"
+ML_DIR = os.path.dirname(os.path.abspath(__file__))   # 어느 폴더에서 실행해도 경로가 맞도록 ml 폴더 기준
+CSV_PATH = os.path.join(ML_DIR, "..", "data", "mvlv-transformer.csv")
 P95_KW = 1400          # replay.py 와 같은 규모 (가동 중 상위 5% 전력)
 
 STEP_SEC = 10          # 10초 평균 = 1칸
