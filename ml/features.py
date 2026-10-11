@@ -117,7 +117,8 @@ def make_point(values, start_pos, k, window_start):
         future_kwh = 0.0
     proj_trend = (used_kwh + future_kwh) / 0.25
 
-    now_time = window_start + pd.Timedelta(seconds=k * STEP_SEC)
+    # 학습은 pd.Timestamp, 서빙은 datetime 을 넘기므로 Timestamp 로 통일 (datetime 엔 dayofweek 없음)
+    now_time = pd.Timestamp(window_start) + pd.Timedelta(seconds=k * STEP_SEC)
     hour = now_time.hour + now_time.minute / 60
 
     tab = {

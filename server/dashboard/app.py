@@ -2,9 +2,11 @@
 #
 # 레이아웃 (스크롤 없이 약 700px 높이에 맞춤)
 #   상단 바   : 제목 · 현장 · 기준 시각
-#   1행 타일  : 현재 전력 | 15분 예상 수요 | ESS | 현장·데이터
-#   2행 차트  : 최근 3시간 15분 수요 | 최근 30분 전력 추이
-#   3행 기록  : 제어 이력 | 알림 (최근 6건)
+#   1행 타일  : 현재 전력 | 15분 예상 수요(계산식 + ML) | ESS | 현장·데이터
+#   2행 차트  : 최근 3시간 15분 수요(실제 막대 + 예측 점) | 최근 30분 전력 추이
+#   3행 기록  : 제어 이력 | 알림 (최근 6건) | 오늘 ML 성적표
+#
+# ml.* 테이블은 ml/serve.py 가 만들고 채움. 아직 없으면 ML 부분만 "대기"로 표시
 
 import html
 import os
@@ -28,13 +30,16 @@ PF_MIN = 0.90
 
 CHART_H = 220
 CHART_BOX_H = 290    # 차트 패널 고정 높이 (제목 + 차트 + 여백)
-LOG_BOX_H = 250      # 기록 패널 고정 높이
+LOG_BOX_H = 232      # 기록 패널 고정 높이 (타일에 ML 한 줄이 늘어난 만큼 줄임)
 LOG_ROWS = 6
 
 GREEN = "#2e9e5b"
 AMBER = "#d39b1e"
 RED = "#d64545"
 GRAY = "#7a7f87"
+BLUE = "#4c78a8"
+PURPLE = "#9467bd"   # ML 예측
+ML_STALE_SEC = 90    # ML 예측이 이보다 오래되면 serve.py 멈춤으로 봄
 
 ACTION_NAME = {"shed": "부하 차단", "restore": "부하 복귀", "ess_on": "ESS 방전", "ess_off": "ESS 정지"}
 KIND_NAME = {
@@ -60,10 +65,12 @@ st.markdown("""
 .topbar .meta {font-size: 13px; opacity: .7;}
 
 .tile {border: 1px solid rgba(128,128,128,.35); border-radius: 6px; padding: 10px 14px;
-       height: 116px; box-sizing: border-box;}
+       height: 136px; box-sizing: border-box;}
 .t-label {font-size: 13px; opacity: .8; display: flex; justify-content: space-between; align-items: center;}
 .t-value {font-size: 28px; font-weight: 700; line-height: 1.2; margin-top: 4px;}
 .t-sub {font-size: 13px; opacity: .75; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.t-extra {font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.t-extra b {color: #9467bd;}
 .badge {font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 10px; color: #fff;}
 .bar {height: 6px; background: rgba(128,128,128,.25); border-radius: 3px; margin-top: 6px; overflow: hidden;}
 .bar > div {height: 100%;}
@@ -100,7 +107,7 @@ def badge(label, color):
     return f'<span class="badge" style="background:{color}">{label}</span>'
 
 
-def tile(label, value, sub, badge_html="", bar_ratio=None, bar_color=GRAY):
+def tile(label, value, sub, badge_html="", bar_ratio=None, bar_color=GRAY, extra=""):
     bar_html = ""
     if bar_ratio is not None:
         width = max(0.0, min(bar_ratio, 1.0)) * 100
@@ -108,7 +115,8 @@ def tile(label, value, sub, badge_html="", bar_ratio=None, bar_color=GRAY):
     return (f'<div class="spacer"><div class="tile notranslate" translate="no">'
             f'<div class="t-label"><span>{label}</span>{badge_html}</div>'
             f'<div class="t-value">{value}</div>{bar_html}'
-            f'<div class="t-sub">{sub}</div></div></div>')
+            f'<div class="t-sub">{sub}</div>'
+            f'<div class="t-extra">{extra}</div></div></div>')
 
 
 def panel_title(title, sub=""):
@@ -128,6 +136,36 @@ def log_table(headers, rows, widths):
             f'<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>')
 
 
+# ml/serve.py 가 한 번이라도 실행돼서 ml 테이블이 있는지
+def ml_ready():
+    return bool(query("SELECT to_regclass('ml.forecast') IS NOT NULL "
+                      "AND to_regclass('ml.window_eval') IS NOT NULL AS ok").iloc[0]["ok"])
+
+
+# 이번 구간의 최신 ML 예측 1행 (없으면 None)
+def latest_ml(t, ws, has_ml):
+    if not has_ml or ws is None:
+        return None
+    df = query("SELECT ts, ml_kw FROM ml.forecast WHERE window_start = :ws ORDER BY ts DESC LIMIT 1", ws=ws)
+    if df.empty:
+        return None
+    f = df.iloc[0]
+    if (pd.Timestamp(t) - f["ts"]).total_seconds() > ML_STALE_SEC:
+        return None
+    return f
+
+
+def ml_line(d, f, has_ml):
+    if not has_ml:
+        return '<span style="opacity:.6">ML 예측 대기 · serve.py 미실행</span>'
+    if f is None:
+        return '<span style="opacity:.6">ML 예측 대기 · 구간 시작 2분 후부터</span>'
+    diff = f["ml_kw"] - d["projected_kw"]
+    return (f'ML 예측 <b>{f["ml_kw"]:,.0f} kW</b>'
+            f'<span style="opacity:.75"> · 목표 대비 {f["ml_kw"] / d["target_kw"]:.0%}'
+            f' · 계산식과 {diff:+,.0f} kW</span>')
+
+
 def get_health(t):
     return query("""
         SELECT count(*) FILTER (WHERE buffered) AS resent,
@@ -140,7 +178,7 @@ def get_health(t):
         ) x""", s=t - timedelta(hours=1), g=GAP_SEC).iloc[0]
 
 
-def show_tiles(t, r, d):
+def show_tiles(t, r, d, has_ml):
     cols = st.columns(4)
 
     # 현재 전력 + 전력 품질
@@ -163,10 +201,11 @@ def show_tiles(t, r, d):
             state, color = "정상", GREEN
         ws = d["window_start"]
         we = ws + timedelta(minutes=15)
+        f = latest_ml(t, ws, has_ml)
         cols[1].markdown(tile(
-            "15분 예상 수요", f"{d['projected_kw']:,.0f} kW",
+            "15분 예상 수요 (계산식)", f"{d['projected_kw']:,.0f} kW",
             f"목표 {d['target_kw']:,.0f} kW 대비 {ratio:.0%} · 구간 {ws:%H:%M}~{we:%H:%M}",
-            badge(state, color), ratio, color,
+            badge(state, color), ratio, color, ml_line(d, f, has_ml),
         ), unsafe_allow_html=True)
     else:
         cols[1].markdown(tile("15분 예상 수요", "-", "구간 데이터 없음"), unsafe_allow_html=True)
@@ -193,8 +232,13 @@ def show_tiles(t, r, d):
 
 
 # 최근 3시간 15분 구간. 흐린 막대 = 진행 중 구간(예상치)
-def show_demand_chart(t, target):
-    panel_title("15분 수요", "최근 3시간 · 빨강 = 목표 초과 · 흐림 = 진행 중 · 점선 = 목표")
+# 점 = 그 구간 동안 30초마다 낸 예측의 평균 (ml.window_eval 오차와 같은 기준)
+def show_demand_chart(t, target, has_ml):
+    legend = ""
+    if has_ml:
+        legend = (f' · <span style="color:{PURPLE}">●</span> ML'
+                  f' · <span style="color:{GRAY}">◆</span> 계산식 (구간 예측 평균)')
+    panel_title("15분 수요", "최근 3시간 · 빨강 = 목표 초과 · 흐림 = 진행 중 · 점선 = 목표" + legend)
 
     df = query("""
         SELECT window_start,
@@ -208,20 +252,47 @@ def show_demand_chart(t, target):
         return
     df["구간"] = df["window_start"].dt.strftime("%H:%M")
 
-    # 목표선이 차트 위로 넘치지 않게 y축 범위를 목표보다 10% 크게
-    y_max = max(df["kw"].max(), target or 0) * 1.1
+    if has_ml:
+        pred = query("""
+            SELECT window_start, avg(formula_kw) AS formula_kw, avg(ml_kw) AS ml_kw
+            FROM ml.forecast
+            WHERE window_start >= :s
+            GROUP BY window_start""", s=t - timedelta(hours=3))
+        df = df.merge(pred, on="window_start", how="left")
+    else:
+        df["formula_kw"] = float("nan")
+        df["ml_kw"] = float("nan")
 
-    bars = alt.Chart(df).mark_bar(size=22).encode(
-        x=alt.X("구간:O", title=None, axis=alt.Axis(labelAngle=0)),
-        y=alt.Y("kw:Q", title="kW", scale=alt.Scale(domain=[0, y_max])),
-        color=alt.condition("datum.kw >= datum.target_kw", alt.value(RED), alt.value("#4c78a8")),
+    # 목표선·예측 점이 차트 위로 넘치지 않게 y축 범위를 10% 크게 (NaN 은 max 에서 제외됨)
+    y_max = max(df[["kw", "formula_kw", "ml_kw"]].astype(float).max().max(), target or 0) * 1.1
+
+    x = alt.X("구간:O", title=None, axis=alt.Axis(labelAngle=0))
+    y_scale = alt.Scale(domain=[0, y_max])
+    tooltip = [alt.Tooltip("구간:O"),
+               alt.Tooltip("kw:Q", format=",.0f", title="실제 kW"),
+               alt.Tooltip("formula_kw:Q", format=",.0f", title="계산식 예측"),
+               alt.Tooltip("ml_kw:Q", format=",.0f", title="ML 예측")]
+
+    base = alt.Chart(df)
+    bars = base.mark_bar(size=22).encode(
+        x=x,
+        y=alt.Y("kw:Q", title="kW", scale=y_scale),
+        color=alt.condition("datum.kw >= datum.target_kw", alt.value(RED), alt.value(BLUE)),
         opacity=alt.condition("datum.final", alt.value(1.0), alt.value(0.45)),
-        tooltip=[alt.Tooltip("구간:O"), alt.Tooltip("kw:Q", format=",.0f", title="kW")],
+        tooltip=tooltip,
     )
     chart = bars
     if target is not None:
         rule = alt.Chart(pd.DataFrame({"y": [target]})).mark_rule(strokeDash=[5, 4], color=GRAY).encode(y="y:Q")
-        chart = bars + rule
+        chart = chart + rule
+    if df["ml_kw"].notna().any():
+        formula_pts = base.transform_filter("isValid(datum.formula_kw)").mark_point(
+            shape="diamond", size=70, filled=True, color=GRAY, opacity=1,
+        ).encode(x=x, y=alt.Y("formula_kw:Q", scale=y_scale), tooltip=tooltip)
+        ml_pts = base.transform_filter("isValid(datum.ml_kw)").mark_point(
+            shape="circle", size=70, filled=True, color=PURPLE, opacity=1,
+        ).encode(x=x, y=alt.Y("ml_kw:Q", scale=y_scale), tooltip=tooltip)
+        chart = chart + formula_pts + ml_pts
 
     chart = chart.properties(height=CHART_H).configure_axis(labelFontSize=12, titleFontSize=12)
     st.altair_chart(chart, use_container_width=True)
@@ -288,6 +359,43 @@ def show_alerts():
                 unsafe_allow_html=True)
 
 
+# 오늘 끝난 구간들에서 계산식 vs ML 평균 오차 비교
+def show_ml_scorecard(t, has_ml):
+    panel_title("ML 성적표", "오늘 · 확정 구간 기준")
+    if not has_ml:
+        st.markdown('<div class="empty">ML 서빙 대기 · ml/serve.py 실행 필요</div>', unsafe_allow_html=True)
+        return
+
+    s = query("""
+        SELECT count(*) AS n,
+               avg(formula_mae) AS formula_mae,
+               avg(ml_mae) AS ml_mae,
+               count(*) FILTER (WHERE ml_mae < formula_mae) AS ml_wins
+        FROM ml.window_eval
+        WHERE window_start >= :s""", s=t.replace(hour=0, minute=0, second=0, microsecond=0)).iloc[0]
+    n = int(s["n"])
+    if n == 0:
+        st.markdown('<div class="empty">오늘 평가된 구간 없음 · 첫 구간 마감 후 표시</div>', unsafe_allow_html=True)
+        return
+
+    fm, mm, wins = float(s["formula_mae"]), float(s["ml_mae"]), int(s["ml_wins"])
+    gain = (fm - mm) / fm if fm > 0 else 0.0
+    last = query("""
+        SELECT window_start, formula_mae, ml_mae FROM ml.window_eval
+        ORDER BY window_start DESC LIMIT 1""").iloc[0]
+    last_winner = "ML" if last["ml_mae"] < last["formula_mae"] else "계산식"
+
+    rows = [
+        ["평가 구간", f"{n}개"],
+        ["계산식 평균 오차", f"{fm:,.1f} kW"],
+        ["ML 평균 오차", f"{mm:,.1f} kW"],
+        ["ML 오차 개선", f"{gain:+.1%}"],
+        ["ML 승률", f"{wins / n:.0%} ({wins}/{n})"],
+        ["최근 구간", f"{last['window_start']:%H:%M} · {last_winner} 승"],
+    ]
+    st.markdown(log_table(["항목", "값"], rows, ["50%", "50%"]), unsafe_allow_html=True)
+
+
 @st.fragment(run_every=REFRESH_SEC)
 def live():
     t = now()
@@ -310,20 +418,23 @@ def live():
         d = dem.iloc[0]
         target = float(d["target_kw"])
 
-    show_tiles(t, r, d)
+    has_ml = ml_ready()
+    show_tiles(t, r, d, has_ml)
 
     # 패널 높이를 고정해서 좌우 칸 높이가 같고, 내용이 다음 줄로 넘치지 않게 함
     cols = st.columns([3, 2])
     with cols[0].container(border=True, height=CHART_BOX_H):
-        show_demand_chart(t, target)
+        show_demand_chart(t, target, has_ml)
     with cols[1].container(border=True, height=CHART_BOX_H):
         show_power_chart(t, target)
 
-    cols = st.columns([1, 1])
+    cols = st.columns([4, 4, 3])
     with cols[0].container(border=True, height=LOG_BOX_H):
         show_control_log()
     with cols[1].container(border=True, height=LOG_BOX_H):
         show_alerts()
+    with cols[2].container(border=True, height=LOG_BOX_H):
+        show_ml_scorecard(t, has_ml)
 
 
 live()
