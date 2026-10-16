@@ -37,7 +37,6 @@ services:
     environment:
       # 컨테이너끼리는 서비스 이름(db, mosquitto)으로 서로 찾음. 포트도 컨테이너 안쪽 번호(5432)
       DB_DSN: postgresql://${DB_USER}:${DB_PASS}@db:5432/edge
-      MQTT_HOST: mosquitto
       MQTT_USER: ${MQTT_USER}
       MQTT_PASS: ${MQTT_PASS}
     depends_on:

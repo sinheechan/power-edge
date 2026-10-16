@@ -1,15 +1,13 @@
-# 서빙: model.pkl 로드 -> 30초마다 예측 -> 구간 끝나면 평가 -> 하루치 쌓이면 재학습
+# 서빙: model.pkl 로드 -> 30초마다 예측 -> 구간 끝나면 평가 (-> 하루치 쌓이면 재학습)
 #
-# 사용법 (ml 폴더에서, simulator · controller · server 가 켜진 상태):
+# 사용법 (ml 폴더에서, simulator, controller, server 가 켜진 상태):
 #   python serve.py
 #
-# 주기
-#   30초마다       : 진행 중인 15분 구간의 평균 예측 -> ml.forecast 저장
-#   구간 끝날 때마다 : 실제 평균과 비교 (계산식 오차 vs ML 오차) -> ml.window_eval 저장, 화면 출력
-#   새 구간 96개마다 : train.py --include-db 실행 -> 더 좋으면 model.pkl 교체 -> 다시 로드
-#                     (.env 의 RETRAIN=1 일 때만. 기본 0 = 재생 데이터 중복 학습 방지)
+#   30초마다       : 지금 15분 구간의 평균 예측 -> ml.forecast 저장
+#   구간 끝날 때마다 : 실제 평균과 비교 (계산식 오차 vs ML 오차) -> ml.window_eval 저장
+#   구간 96개마다   : RETRAIN = True 일 때만 train.py --include-db 로 재학습
 #
-# 그림자 운영: ML 예측은 기록만 하고, 실제 제어는 controller 의 기존 계산식이 계속 담당
+# ML 예측은 기록만 하고, 실제 제어는 controller 의 기존 계산식이 계속 담당
 
 import os
 import subprocess
@@ -24,16 +22,15 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
 import features
-from models import predict_bundle
+from models import predict_ensemble
 
-PREDICT_SEC = 30
-RETRAIN_WINDOWS = 96          # 15분 x 96 = 하루
-RETRAIN_TRIALS = 5            # 재학습은 짧게
+INTERVAL = 30          # 예측 주기 (초)
+RETRAIN = False        # 자동 재학습. 재생 데이터를 다시 학습하게 돼서 기본은 끔
+RETRAIN_EVERY = 96     # 15분 x 96 = 하루
 MODEL_PATH = os.path.join(features.ML_DIR, "models", "model.pkl")
 
 load_dotenv()
 DB_URL = os.getenv("DB_URL")
-RETRAIN = os.getenv("RETRAIN", "0") == "1"   # 자동 재학습 켜기/끄기
 
 
 def now_kst():
@@ -63,36 +60,34 @@ def create_tables(engine):
             )"""))
 
 
-def load_bundle():
-    bundle = joblib.load(MODEL_PATH)
-    print(f"모델 로드: {'+'.join(bundle['members'])} (run {bundle['run_id']})")
-    return bundle
+def load_model():
+    ens = joblib.load(MODEL_PATH)
+    print(f"모델 로드: {'+'.join(ens['members'])} (run {ens['run_id']})")
+    return ens
 
 
-# 진행 중인 구간 1회 예측
-def predict_once(engine, bundle):
+# 지금 구간 한 번 예측
+def predict(engine, ens):
     t = now_kst()
     ws = t.replace(minute=t.minute // 15 * 15, second=0, microsecond=0)
     k = int((t - ws).total_seconds() // features.STEP_SEC)
-    if k < features.FIRST_POINT:
+    if k < features.FIRST:
         return                         # 구간 시작 2분 이내는 예측 안 함
 
     # 최근 30분 데이터 (최근 10분 시퀀스 + 이번 구간)
-    since = t - timedelta(minutes=30)
-    steps = features.load_db_power(DB_URL, since=since)
+    steps = features.load_db(DB_URL, since=t - timedelta(minutes=30))
     if len(steps) == 0 or ws not in steps.index:
         print(f"[{t:%H:%M:%S}] 데이터 부족 -> 건너뜀")
         return
 
     values = steps.to_numpy(dtype="float64")
-    start_pos = steps.index.get_loc(ws)
-    point = features.make_point(values, start_pos, k, ws)
+    point = features.make_point(values, steps.index.get_loc(ws), k, ws)
     if point is None:
         print(f"[{t:%H:%M:%S}] 빈 구간 있음 -> 건너뜀")
         return
 
     tab, seq = point
-    ml_kw = float(predict_bundle(bundle, pd.DataFrame([tab]), seq[None, :])[0])
+    ml_kw = float(predict_ensemble(ens, pd.DataFrame([tab]), seq[None, :])[0])
     formula_kw = tab["proj_base"]
 
     with engine.begin() as conn:
@@ -100,13 +95,13 @@ def predict_once(engine, bundle):
             INSERT INTO ml.forecast VALUES (:ts, :ws, :em, :f, :m, :run)
             ON CONFLICT (ts) DO NOTHING"""),
             {"ts": t, "ws": ws, "em": k * features.STEP_SEC / 60,
-             "f": formula_kw, "m": ml_kw, "run": bundle["run_id"]})
+             "f": formula_kw, "m": ml_kw, "run": ens["run_id"]})
 
     print(f"[{t:%H:%M:%S}] 구간 {ws:%H:%M} | 계산식 {formula_kw:7.0f} kW | ML {ml_kw:7.0f} kW")
 
 
 # 끝난 구간 평가 (ops.demand_15min 의 확정 평균과 비교). 새로 평가한 구간 수 반환
-def evaluate_closed(engine, bundle):
+def evaluate(engine, ens):
     sql = text("""
         SELECT f.window_start,
                d.avg_kw AS actual_kw,
@@ -126,23 +121,13 @@ def evaluate_closed(engine, bundle):
                 INSERT INTO ml.window_eval VALUES (:ws, :a, :fm, :mm, :n, :run)
                 ON CONFLICT (window_start) DO NOTHING"""),
                 {"ws": r["window_start"], "a": r["actual_kw"], "fm": r["formula_mae"],
-                 "mm": r["ml_mae"], "n": r["n_points"], "run": bundle["run_id"]})
+                 "mm": r["ml_mae"], "n": r["n_points"], "run": ens["run_id"]})
 
-            if r["ml_mae"] < r["formula_mae"]:
-                winner = "ML 승"
-            else:
-                winner = "계산식 승"
+            winner = "ML 승" if r["ml_mae"] < r["formula_mae"] else "계산식 승"
             print(f"[구간 평가] {r['window_start']:%H:%M} 실제 {r['actual_kw']:,.0f} kW | "
                   f"계산식 오차 {r['formula_mae']:.0f} kW | ML 오차 {r['ml_mae']:.0f} kW | {winner}")
 
     return len(rows)
-
-
-def retrain():
-    print("=== 재학습 시작 (끝날 때까지 예측 잠시 멈춤) ===")
-    result = subprocess.run([sys.executable, os.path.join(features.ML_DIR, "train.py"), "--include-db", "--trials", str(RETRAIN_TRIALS)])
-    print("=== 재학습 끝 ===")
-    return result.returncode == 0
 
 
 def main():
@@ -152,28 +137,30 @@ def main():
 
     engine = create_engine(DB_URL, pool_pre_ping=True)
     create_tables(engine)
-    bundle = load_bundle()
-    new_windows = 0
+    ens = load_model()
+    n_new = 0     # 마지막 재학습 후 평가한 구간 수
 
     while True:
         t0 = time.time()
 
         try:
-            predict_once(engine, bundle)
-            new_windows = new_windows + evaluate_closed(engine, bundle)
+            predict(engine, ens)
+            n_new += evaluate(engine, ens)
         except Exception as e:
             print("오류:", e)
 
-        if new_windows >= RETRAIN_WINDOWS:
+        if n_new >= RETRAIN_EVERY:
             if RETRAIN:
-                if retrain():
-                    bundle = load_bundle()
+                print("=== 재학습 시작 (끝날 때까지 예측 잠시 멈춤) ===")
+                r = subprocess.run([sys.executable, os.path.join(features.ML_DIR, "train.py"), "--include-db"])
+                print("=== 재학습 끝 ===")
+                if r.returncode == 0:
+                    ens = load_model()
             else:
                 print("재학습 꺼짐")
-            new_windows = 0
+            n_new = 0
 
-        elapsed = time.time() - t0
-        time.sleep(max(0.0, PREDICT_SEC - elapsed))
+        time.sleep(max(0.0, INTERVAL - (time.time() - t0)))
 
 
 if __name__ == "__main__":
