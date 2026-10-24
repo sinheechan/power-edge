@@ -1,0 +1,10 @@
+# 어두운 관제 화면 테마 (app.py 의 색과 맞춤)
+[theme]
+base = "dark"
+primaryColor = "#4f8fe8"
+backgroundColor = "#0d1117"
+secondaryBackgroundColor = "#151b24"
+textColor = "#e6edf3"
+
+[client]
+toolbarMode = "minimal"
